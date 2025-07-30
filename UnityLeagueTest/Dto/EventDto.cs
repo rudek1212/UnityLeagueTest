@@ -1,13 +1,39 @@
-﻿namespace UnityLeagueTest.Dto;
+﻿using System.Text.Json.Serialization;
+
+namespace UnityLeagueTest.Dto;
 
 public class EventDto
 {
-    public string Name { get; set; } = default!;
-    public string Date { get; set; } = default!; // format: yyyy-MM-dd
-    public string StartTime { get; set; } = default!; // format: HH:mm:ss
-    public string EndTime { get; set; } = default!; // format: HH:mm:ss
-    public string Format { get; set; } = default!;
-    public string Category { get; set; } = default!;
-    public string Url { get; set; } = default!;
-    public string Description { get; set; } = default!;
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
+    [JsonPropertyName("date")]
+    public string Date { get; set; }
+    
+    [JsonPropertyName("start_time")]
+    public string StartTime { get; set; }
+
+    [JsonPropertyName("end_time")]
+    public string EndTime { get; set; }
+
+    [JsonPropertyName("format")]
+    public string Format { get; set; }
+
+    [JsonPropertyName("category")]
+    public string Category { get; set; }
+
+    [JsonPropertyName("address")]
+    public int Address { get; set; }
+
+    [JsonPropertyName("url")]
+    public string Url { get; set; }
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; }
+
+    [JsonPropertyName("image")]
+    public string Image { get; set; }
+
+    [JsonPropertyName("submit_type")]
+    public string SubmitType { get; set; }
 }

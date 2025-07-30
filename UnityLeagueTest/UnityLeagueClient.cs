@@ -17,7 +17,7 @@ public interface IUnityLeagueClient
 
 public class UnityLeagueClient : IUnityLeagueClient
 {
-    private string? _baseUrl = "https://unityleague.ch";
+    private string? _baseUrl = "https://playground.unityleague.ch";
     private string? _clientId = "CLIENTID";
     private string? _clientSecret = "CLIENTSECRET";
 
@@ -58,13 +58,15 @@ public class UnityLeagueClient : IUnityLeagueClient
         var eventDto = new EventDto
         {
             Name = "API Christmas Event",
-            Date = "2024-12-25",
+            Date = "2025-12-25",
             StartTime = "13:00:00",
             EndTime = "20:00:00",
             Format = "LEGACY",
             Category = "PREMIER",
             Url = "https://test.example",
-            Description = "This is going to be <b>very</b> cool!"
+            Description = "This is going to be <b>very</b> cool!",
+            Address = 483,
+            SubmitType = "create_event"
         };
 
         var url = $"{_baseUrl}/api/events/create/";
