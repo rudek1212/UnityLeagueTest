@@ -14,10 +14,7 @@ namespace UnityLeagueTest
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            builder.Services.Configure<UnityLeagueConnectionSettings>(
-                builder.Configuration.GetSection("UnityLeagueConnectionSettings"));
-
-            builder.Services.RegisterServices();
+            builder.Services.RegisterServices(builder.Configuration);
 
             var app = builder.Build();
 

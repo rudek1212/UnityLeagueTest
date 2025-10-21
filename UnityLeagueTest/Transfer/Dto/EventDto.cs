@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace UnityLeagueTest.Dto;
+namespace UnityLeagueTest.Transfer.Dto;
 
 public class EventDto
 {
@@ -9,7 +9,7 @@ public class EventDto
 
     [JsonPropertyName("date")]
     public string Date { get; set; }
-    
+
     [JsonPropertyName("start_time")]
     public string StartTime { get; set; }
 
@@ -23,7 +23,7 @@ public class EventDto
     public string Category { get; set; }
 
     [JsonPropertyName("address")]
-    public int Address { get; set; }
+    public string Address { get; set; }
 
     [JsonPropertyName("url")]
     public string Url { get; set; }
@@ -32,8 +32,10 @@ public class EventDto
     public string Description { get; set; }
 
     [JsonPropertyName("image")]
-    public string Image { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Image { get; set; }
 
     [JsonPropertyName("submit_type")]
-    public string SubmitType { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SubmitType { get; set; }
 }

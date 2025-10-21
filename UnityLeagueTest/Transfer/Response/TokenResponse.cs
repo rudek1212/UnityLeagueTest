@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace UnityLeagueTest.Dto;
+namespace UnityLeagueTest.Transfer.Response;
 
-public class TokenDto
+public class TokenResponse
 {
     [JsonPropertyName("access_token")]
     public string? Token { get; set; }

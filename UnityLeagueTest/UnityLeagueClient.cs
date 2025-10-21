@@ -1,136 +1,86 @@
-﻿using System.Net;
-using System.Net.Http.Headers;
+﻿using Newtonsoft.Json;
 using System.Text;
-using System.Text.Json;
-using Microsoft.Extensions.Options;
-using UnityLeagueTest.Dto;
+using UnityLeagueTest.Transfer.Dto;
+using UnityLeagueTest.Transfer.Mapper;
+using UnityLeagueTest.Transfer.Request;
+using UnityLeagueTest.Transfer.Response;
 
-namespace UnityLeagueTest;
-
-public interface IUnityLeagueClient
+namespace UnityLeagueTest
 {
-    public Task<UserDto?> GetCurrentUserAsync();
-    public Task<OrganizerDto?> GetCurrentOrganizerAsync();
-    public Task<TokenDto?> GetBearerTokenAsync();
-    public Task<string?> CreateEventAsync();
-}
-
-public class UnityLeagueClient : IUnityLeagueClient
-{
-    private readonly UnityLeagueConnectionSettings _options;
-    private readonly HttpClient _httpClient;
-
-    public UnityLeagueClient(
-        HttpClient httpClient,
-        IOptions<UnityLeagueConnectionSettings> options)
+    public interface IUnityLeagueClient
     {
-        _httpClient = httpClient;
-        _options = options.Value;
+        Task<EventDetailsDto?> GetEventByIdAsync(int eventId, CancellationToken cancellationToken = default);
+        Task<EventDetailsDto?> CreateEventAsync(CreateEventRequest request, CancellationToken cancellationToken = default);
+        Task<EventDetailsDto?> UpdateEventAsync(int eventId, UpdateEventRequest request, CancellationToken cancellationToken = default);
+        Task<bool> DeleteEventAsync(int eventId, CancellationToken cancellationToken = default);
+        Task<EventDetailsDto?> ReportResultsAsync(int eventId, ReportResultsRequest request, CancellationToken cancellationToken = default);
     }
 
-    public async Task<UserDto?> GetCurrentUserAsync()
+    public class UnityLeagueClient : IUnityLeagueClient
     {
-        var response = await _httpClient.GetAsync($"{_options.BaseUrl}/api/me/");
+        private readonly HttpClient _httpClient;
 
-        _httpClient.DefaultRequestHeaders.Authorization = await GetBearerTokenHeaderAsync();
-
-        await HandleResponse(response);
-
-        var responseJson = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<UserDto>(responseJson);
-    }
-
-    public async Task<OrganizerDto?> GetCurrentOrganizerAsync()
-    {
-        var response = await _httpClient.GetAsync($"{_options.BaseUrl}/api/organizers/me/");
-
-        _httpClient.DefaultRequestHeaders.Authorization = await GetBearerTokenHeaderAsync();
-
-        await HandleResponse(response);
-
-        var responseJson = await response.Content.ReadAsStringAsync();
-
-        return JsonSerializer.Deserialize<OrganizerDto>(responseJson);
-    }
-
-    public async Task<string?> CreateEventAsync()
-    {
-        var eventDto = new EventDto
+        public UnityLeagueClient(HttpClient httpClient)
         {
-            Name = "API Christmas Event",
-            Date = "2025-12-25",
-            StartTime = "13:00:00",
-            EndTime = "20:00:00",
-            Format = "LEGACY",
-            Category = "PREMIER",
-            Url = "https://test.example",
-            Description = "This is going to be <b>very</b> cool!",
-        };
+            _httpClient = httpClient;
+        }
 
-        var url = $"{_options.BaseUrl}/api/events/";
-
-
-        _httpClient.DefaultRequestHeaders.Authorization = await GetBearerTokenHeaderAsync();
-        var response = await _httpClient.PostAsJsonAsync(url, eventDto);
-
-        await HandleResponse(response);
-
-        return await response.Content.ReadAsStringAsync();
-    }
-
-    public async Task<TokenDto?> GetBearerTokenAsync()
-    {
-        var url = $"{_options.BaseUrl}/o/token/";
-
-        var data = new Dictionary<string, string>
+        public async Task<EventDetailsDto?> GetEventByIdAsync(int eventId, CancellationToken cancellationToken = default)
         {
-            { "grant_type", "password" },
-            { "username", _options.Username },
-            { "password", _options.Password }
-        };
+            var response = await _httpClient.GetAsync($"/api/events/{eventId}/", cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
 
-        var request = new HttpRequestMessage(HttpMethod.Post, url)
+            var responseData = await response.Content.ReadFromJsonAsync<CreateEventResponse>(cancellationToken: cancellationToken);
+            return responseData.MapToDto();
+        }
+
+        public async Task<EventDetailsDto?> CreateEventAsync(CreateEventRequest request, CancellationToken cancellationToken = default)
         {
-            Content = new FormUrlEncodedContent(data)
-        };
+            var response = await _httpClient.PostAsync(
+                "/api/events/",
+                new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json"),
+                cancellationToken);
+            response.EnsureSuccessStatusCode();
 
-        request.Headers.Authorization = GetBasicAuthHeader(_options.ClientId, _options.ClientSecret);
+            var responseData = await response.Content.ReadFromJsonAsync<CreateEventResponse>(cancellationToken: cancellationToken);
 
-        var response = await _httpClient.SendAsync(request);
-        
-        await HandleResponse(response);
+            return responseData.MapToDto();
+        }
 
-        var responseJson = await response.Content.ReadAsStringAsync();
+        public async Task<EventDetailsDto?> UpdateEventAsync(int eventId, UpdateEventRequest request, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PutAsync(
+                $"/api/events/{eventId}/",
+                new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json"),
+                cancellationToken);
+            response.EnsureSuccessStatusCode();
 
-        return JsonSerializer.Deserialize<TokenDto>(responseJson);
-    }
+            var responseData = await response.Content.ReadFromJsonAsync<UpdateEventResponse>(cancellationToken: cancellationToken);
 
-    private async Task<AuthenticationHeaderValue> GetBearerTokenHeaderAsync()
-    {
-        var token = await GetBearerTokenAsync();
+            return responseData.MapToDto();
+        }
 
-        return new AuthenticationHeaderValue("Bearer", token.Token);
-    }
+        public async Task<bool> DeleteEventAsync(int eventId, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.DeleteAsync($"/api/events/{eventId}/", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
 
-    private AuthenticationHeaderValue GetBasicAuthHeader(string username, string password)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentNullException(nameof(username));
-        if (string.IsNullOrWhiteSpace(password))
-            throw new ArgumentNullException(nameof(password));
+        /// <summary>
+        /// Raportuje wyniki do wydarzenia
+        /// POST /api/events/{id}/report/
+        /// </summary>
+        public async Task<EventDetailsDto> ReportResultsAsync(int eventId, ReportResultsRequest request, CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.PatchAsync(
+                $"/api/events/{eventId}/",
+                new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json"),
+                cancellationToken);
+            response.EnsureSuccessStatusCode();
 
-        var credentials = $"{username}:{password}";
-        var base64Credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes(credentials));
+            var responseData = await response.Content.ReadFromJsonAsync<ReportResultsResponse>(cancellationToken: cancellationToken);
 
-        return new AuthenticationHeaderValue("Basic", base64Credentials);
-    }
-
-
-    private async Task HandleResponse(HttpResponseMessage? response)
-    {
-        if (response.StatusCode == HttpStatusCode.MovedPermanently)
-            throw new Exception($"Response code: {response.StatusCode:D}. Location: {response.Headers.Location}");
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Response code: {response.StatusCode:D} {response.StatusCode:G}. Reason: {response.ReasonPhrase}. {await response.Content.ReadAsStringAsync()}.");
+            return responseData.MapToDto();
+        }
     }
 }
